@@ -1,0 +1,27 @@
+# Dataset and Model Weights (DO NOT TRACK)
+data/
+models/
+*.npy
+*.pth
+
+# Python Cache and Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+venv/
+env/
+.env
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+
+# LaTeX compilation files (keep only .tex and figures in git)
+report/*.aux
+report/*.log
+report/*.out
+report/*.fls
+report/*.fdb_latexmk
+report/*.synctex.gz
