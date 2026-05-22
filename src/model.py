@@ -1,6 +1,6 @@
 """
 Convolutional Neural Network (CNN) architecture definition.
-Designed to be ultra-lightweight to maximize the "Model Efficiency" ranking.
+Baseline model: Lightweight, but preserves spatial features for convergence.
 """
 
 import torch
@@ -31,40 +31,31 @@ class MicrostructureCNN(nn.Module):
             nn.ReLU(),
             # Output: (Batch, 16, 9, 9)
         )
-        
-        # Global Average Pooling: The secret weapon for high efficiency scores
-        # This converts the (16, 9, 9) spatial tensor into a flat (16, 1, 1) vector
-        # It forces the network to look at the "overall" properties of the image
-        # and eliminates the need for massive Linear layers.
-        self.global_pool = nn.AdaptiveAvgPool2d((1, 1))
-        
-        # Regressor: Predicts the single E_eff value
+
         self.regressor = nn.Sequential(
-            nn.Linear(16, 8),
+            nn.Linear(1296, 64),
             nn.ReLU(),
-            nn.Linear(8, 1)
+            nn.Linear(64, 1)
         )
 
     def forward(self, x):
         x = self.features(x)
-        x = self.global_pool(x)
-        x = torch.flatten(x, 1) # Flatten all dimensions except batch
+        x = torch.flatten(x, 1) 
         x = self.regressor(x)
         return x
 
 def count_parameters(model):
     """
     Utility function to count trainable parameters.
-    Use this to prove your model's efficiency in the final report!
     """
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 # Example Usage & Sanity Check:
-# if __name__ == "__main__":
-#     model = MicrostructureCNN()
-#     print(f"Total Trainable Parameters: {count_parameters(model)}")
-#     
-#     # Dummy input mimicking a batch of 4 images of size 65x65
-#     dummy_input = torch.randn(4, 1, 65, 65)
-#     dummy_output = model(dummy_input)
-#     print(f"Output shape: {dummy_output.shape}") # Should be (4, 1)
+if __name__ == "__main__":
+    model = MicrostructureCNN()
+    print(f"Total Trainable Parameters: {count_parameters(model)}")
+    
+    # Dummy input mimicking a batch of 4 images of size 65x65
+    dummy_input = torch.randn(4, 1, 65, 65)
+    dummy_output = model(dummy_input)
+    print(f"Output shape: {dummy_output.shape}") # Should be (4, 1)

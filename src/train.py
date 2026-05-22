@@ -11,11 +11,11 @@ import torch.optim as optim
 # Import our custom modules
 from dataset import create_dataloaders
 from model import MicrostructureCNN
-from evaluate import plot_loss_curves, evaluate_model, calculate_relative_error
+from evaluate import plot_loss_curves, evaluate_model, calculate_relative_error, plot_predictions
 
 def train_model(
     img_dir="../data/images",
-    labels_path="../data/labels.csv", # Updated to match your CSV setup
+    labels_path="../data/results.csv",
     model_save_path="../models/best_model.pth",
     epochs=50,
     batch_size=64,
@@ -111,6 +111,8 @@ def train_model(
     
     # Run the final evaluation on the unseen test set
     evaluate_model(model, test_loader, device)
+
+    plot_predictions(model, test_loader, num_samples=10, device=device, save_path="../report/predictions.pdf")
 
 if __name__ == "__main__":
     # You can execute this script directly to run the whole pipeline

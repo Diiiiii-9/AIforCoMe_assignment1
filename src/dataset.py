@@ -30,6 +30,8 @@ class MicrostructureDataset(Dataset):
         filename = row['filename']
         label = row['E_eff']
         
+        label = label / 1e9  # Normalize E_eff to GPa for better numerical stability during training
+
         # Ensure the filename ends with .npy (just in case the CSV omits the extension)
         if not filename.endswith('.npy'):
             filename += '.npy'
@@ -41,6 +43,10 @@ class MicrostructureDataset(Dataset):
         # 3. Convert image to tensor and add the channel dimension (1, 65, 65)
         # CNNs require (Channels, Height, Width)
         image_tensor = torch.tensor(image, dtype=torch.float32).unsqueeze(0)
+
+        
+        if image_tensor.max() > 1.0:
+            image_tensor = image_tensor / 255.0
         
         # 4. Convert label to tensor shape (1,)
         label_tensor = torch.tensor([label], dtype=torch.float32)
@@ -58,6 +64,8 @@ def create_dataloaders(img_dir, labels_path, batch_size=64, train_ratio=0.8, val
     
     # Optional: Verify columns exist to prevent silent bugs
     assert 'filename' in df.columns and 'E_eff' in df.columns, "CSV must contain 'filename' and 'E_eff' columns!"
+
+    df = df[['filename', 'E_eff']]  # as we dont need nu_eff for this assignment, we can drop it to save memory and speed up loading.
 
     # 2. Limit dataset size to improve the "Efficiency Score" ranking
     if max_samples is not None and max_samples < len(df):
