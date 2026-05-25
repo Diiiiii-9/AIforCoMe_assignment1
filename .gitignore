@@ -1,8 +1,5 @@
 # Dataset and Model Weights (DO NOT TRACK)
-data/
-models/
 *.npy
-*.pth
 
 # Python Cache and Environments
 __pycache__/
@@ -19,9 +16,9 @@ env/
 *.swp
 
 # LaTeX compilation files (keep only .tex and figures in git)
-report/*.aux
-report/*.log
-report/*.out
-report/*.fls
-report/*.fdb_latexmk
-report/*.synctex.gz
+report/latex/*.aux
+report/latex/*.log
+report/latex/*.out
+report/latex/*.fls
+report/latex/*.fdb_latexmk
+report/latex/*.synctex.gz

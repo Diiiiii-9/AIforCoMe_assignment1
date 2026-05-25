@@ -42,7 +42,7 @@ def train_model(
 
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-4)
 
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, verbose=True)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.2, patience=5)
 
     # 4. Training Loop setup
     train_losses = []

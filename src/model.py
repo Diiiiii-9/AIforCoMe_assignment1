@@ -30,12 +30,16 @@ class MicrostructureCNN(nn.Module):
             nn.BatchNorm2d(16),
             nn.ReLU(),
             # Output: (Batch, 16, 9, 9)
+
+            # Global Average Pooling to reduce spatial dimensions while preserving features
+            nn.AdaptiveAvgPool2d((1, 1))
+            # Output: (Batch, 16, 1, 1)
         )
 
         self.regressor = nn.Sequential(
-            nn.Linear(1296, 64),
+            nn.Linear(16, 8),
             nn.ReLU(),
-            nn.Linear(64, 1)
+            nn.Linear(8, 1)
         )
 
     def forward(self, x):
