@@ -12,6 +12,7 @@ import torch.optim as optim
 from dataset import create_dataloaders
 from model import MicrostructureCNN
 from evaluate import plot_loss_curves, evaluate_model, calculate_relative_error, plot_predictions
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 def train_model(
     img_dir="../data/images",
@@ -27,7 +28,6 @@ def train_model(
 
     # 2. Load Data
     # Note: We limit max_samples here to 5000 to boost the efficiency score. 
-    # Huixin can adjust this later during the optimization phase.
     train_loader, val_loader, test_loader = create_dataloaders(
         img_dir=img_dir,
         labels_path=labels_path,
@@ -38,17 +38,20 @@ def train_model(
     # 3. Initialize Model, Loss, and Optimizer
     model = MicrostructureCNN().to(device)
     
-    # We use MSE for calculating gradients during training, 
-    # but we will track the Relative Error for our custom evaluation.
     criterion = nn.MSELoss() 
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, verbose=True)
 
     # 4. Training Loop setup
     train_losses = []
     val_losses = []
-    best_val_loss = float('inf')
+
+    best_val_rel_error = float('inf')
 
     print("Starting Training...")
+
     for epoch in range(epochs):
         # --- Training Phase ---
         model.train()
@@ -71,7 +74,8 @@ def train_model(
         # --- Validation Phase ---
         model.eval()
         running_val_loss = 0.0
-        running_val_error = 0.0
+        total_val_rel_error_sum = 0.0 
+        total_val_samples = 0  
         
         with torch.no_grad():
             for images, labels in val_loader:
@@ -80,23 +84,29 @@ def train_model(
                 
                 loss = criterion(outputs, labels)
                 running_val_loss += loss.item() * images.size(0)
-                running_val_error += calculate_relative_error(outputs, labels)
+
+                epsilon = 1e-8
+                batch_errors = torch.abs(outputs - labels) / (labels + epsilon)
+                total_val_rel_error_sum += torch.sum(batch_errors).item()
+                total_val_samples += labels.size(0)
                 
         epoch_val_loss = running_val_loss / len(val_loader.dataset)
         val_losses.append(epoch_val_loss)
         
-        avg_val_error = running_val_error / len(val_loader)
+        avg_val_error = total_val_rel_error_sum / total_val_samples
+
+        scheduler.step(avg_val_error)
 
         # Print progress every 5 epochs
         if (epoch + 1) % 5 == 0 or epoch == 0:
-            print(f"Epoch [{epoch+1}/{epochs}] | Train Loss (MSE): {epoch_train_loss:.4f} | Val Loss (MSE): {epoch_val_loss:.4f} | Val Rel Error: {avg_val_error*100:.2f}%")
-
+            print(f"Epoch [{epoch+1}/{epochs}] | Train MSE: {epoch_train_loss:.4f} | Val MSE: {epoch_val_loss:.4f} | Val Rel Error: {avg_val_error*100:.2f}%")
+        
         # --- Checkpoint: Save the best model ---
-        if epoch_val_loss < best_val_loss:
-            best_val_loss = epoch_val_loss
-            # Ensure the models directory exists
+        if avg_val_error < best_val_rel_error:
+            best_val_rel_error = avg_val_error
             os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
             torch.save(model.state_dict(), model_save_path)
+            print(f"  -> Best model saved at Epoch {epoch+1} with Rel Error: {avg_val_error*100:.2f}%")
 
     print(f"\nTraining Complete. Best model saved to {model_save_path}")
 

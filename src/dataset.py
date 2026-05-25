@@ -18,17 +18,17 @@ class MicrostructureDataset(Dataset):
             img_dir (str): Path to the directory containing the .npy image files.
         """
         # Reset index to ensure __getitem__ works seamlessly after train_test_split
-        self.df = dataframe.reset_index(drop=True)
+        self.filenames = dataframe['filename'].values
+        self.labels = dataframe['E_eff'].values
         self.img_dir = img_dir
 
     def __len__(self):
-        return len(self.df)
+        return len(self.filenames)
 
     def __getitem__(self, idx):
-        # 1. Get filename and target label from the current row
-        row = self.df.iloc[idx]
-        filename = row['filename']
-        label = row['E_eff']
+        # 1. Get filename and label from the DataFrame
+        filename = str(self.filenames[idx])
+        label = float(self.labels[idx])
         
         label = label / 1e9  # Normalize E_eff to GPa for better numerical stability during training
 
@@ -43,11 +43,7 @@ class MicrostructureDataset(Dataset):
         # 3. Convert image to tensor and add the channel dimension (1, 65, 65)
         # CNNs require (Channels, Height, Width)
         image_tensor = torch.tensor(image, dtype=torch.float32).unsqueeze(0)
-
-        
-        if image_tensor.max() > 1.0:
-            image_tensor = image_tensor / 255.0
-        
+     
         # 4. Convert label to tensor shape (1,)
         label_tensor = torch.tensor([label], dtype=torch.float32)
 
@@ -86,9 +82,9 @@ def create_dataloaders(img_dir, labels_path, batch_size=64, train_ratio=0.8, val
     test_dataset = MicrostructureDataset(df_test, img_dir)
 
     # 6. Initialize PyTorch DataLoaders
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
     print(f"Data Pipeline Ready:")
     print(f"Images Directory: {img_dir}")

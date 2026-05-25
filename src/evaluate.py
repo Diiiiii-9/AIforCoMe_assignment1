@@ -19,21 +19,22 @@ def calculate_relative_error(predictions, targets):
     return torch.mean(error).item()
 
 def evaluate_model(model, test_loader, device='cpu'):
-    """
-    Evaluates the model on the test set and returns the average relative error.
-    """
     model.eval()
-    total_relative_error = 0.0
+    total_error_sum = 0.0
+    total_samples = 0
     
     with torch.no_grad():
         for images, labels in test_loader:
             images, labels = images.to(device), labels.to(device)
-            
             outputs = model(images)
-            batch_error = calculate_relative_error(outputs, labels)
-            total_relative_error += batch_error
+
+            epsilon = 1e-8
+            batch_errors = torch.abs(outputs - labels) / (labels + epsilon)
             
-    avg_error = total_relative_error / len(test_loader)
+            total_error_sum += torch.sum(batch_errors).item()
+            total_samples += labels.size(0)
+            
+    avg_error = total_error_sum / total_samples
     print(f"Test Set Average Relative Error: {avg_error * 100:.2f}%")
     
     if avg_error < 0.30:
